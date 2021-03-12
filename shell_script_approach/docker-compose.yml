@@ -1,0 +1,12 @@
+version: "3"
+services:
+  localstack:
+    image: localstack/localstack
+    ports:
+      - '4566-4597:4566-4597'
+    environment:
+      - DEFAULT_REGION=sa-east-1
+    volumes: 
+      - ./init-scripts:/docker-entrypoint-initaws.d
+
+    
