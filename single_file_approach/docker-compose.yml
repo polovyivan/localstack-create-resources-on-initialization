@@ -8,27 +8,44 @@ services:
       - DEFAULT_REGION=sa-east-1
   aws_cli:
     image: amazon/aws-cli
+    depends_on: 
+      - localstack
     entrypoint: /bin/sh -c
-    command: >
-      "
-        sleep 10
+    command: >  
+     '
+     COUNTER=15;
+     SQS_DESIRED_STATE="sqs running";
+     SERVICE_ACTUAL_STATE=0;
+     
+      while [ $$COUNTER -ne 0 ] && [ $$SERVICE_ACTUAL_STATE != 1 ]
+      
+      do 
+      RESPONSE=$$(curl -sb --connect-timeout 2 /dev/null "localstack:4566/health?redirect" | tr -cd [^[:alnum:][:space:]]+) 
+      echo " Responce from Localstack $$RESPONSE"; 
 
-        # Create profile
-        aws configure set region sa-east-1 --profile=localstack
-        aws configure set aws_access_key_id default_access_key --profile=localstack
-        aws configure set aws_secret_access_key default_secret_key --profile=localstack
+      if [[ $$RESPONSE == *"$$SQS_DESIRED_STATE"* ]]; then SERVICE_ACTUAL_STATE=1; else SERVICE_ACTUAL_STATE=0; fi;
+      
+      COUNTER=$$((COUNTER-1)); 
+      echo "Service is not ready yet! $$COUNTER retries left."; 
+      sleep 3; 
+      done; 
+      echo backend is up;
 
-        # Optional commands to check created configurations
-        aws configure list-profiles
-        aws configure list
-        cat /root/.aws/config
-        cat /root/.aws/credentials
+      echo "########### Creating profile ###########"
 
-        ## RESOURCE CREATION AND STARTUP ## (can have multiple commands)
+      aws configure set aws_access_key_id default_access_key --profile=localstack
+      aws configure set aws_secret_access_key default_secret_key --profile=localstack
+      aws configure set region sa-east-1 --profile=localstack
 
-        # Creating SQS
-        aws sqs create-queue --endpoint-url=http://localstack:4566 --queue-name=local_queue_my --profile=localstack
-        aws sqs create-queue --endpoint-url=http://localstack:4566 --queue-name=local_queue_my_1 --profile=localstack
-       # aws sqs list-queues --endpoint-url=http://localhost:4566 - to list created sqs
+      echo "########### Listing profile ###########"
+      aws configure list --profile=localstack
 
-      "
+      echo "########### Creating SQS ###########"
+      aws sqs create-queue --endpoint-url=http://localstack:4566 --queue-name=local_queue_my --profile=localstack
+      aws sqs create-queue --endpoint-url=http://localstack:4566 --queue-name=local_queue_my_1 --profile=localstack
+
+      echo "########### Listing SQS ###########"
+      aws sqs list-queues --endpoint-url=http://localstack:4566 --profile=localstack
+
+      '
+
