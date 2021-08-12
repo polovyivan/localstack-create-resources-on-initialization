@@ -6,6 +6,10 @@ services:
       - '4566-4597:4566-4597'
     environment:
       - DEFAULT_REGION=sa-east-1
+      - SERVICES=sqs
+      - DATA_DIR=/tmp/localstack/data
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
   aws_cli:
     image: amazon/aws-cli
     depends_on: 
@@ -21,7 +25,7 @@ services:
       
       do 
       RESPONSE=$$(curl -sb --connect-timeout 2 /dev/null "localstack:4566/health?redirect" | tr -cd [^[:alnum:][:space:]]+) 
-      echo " Responce from Localstack $$RESPONSE"; 
+      echo " Response from Localstack $$RESPONSE";
 
       if [[ $$RESPONSE == *"$$SQS_DESIRED_STATE"* ]]; then SERVICE_ACTUAL_STATE=1; else SERVICE_ACTUAL_STATE=0; fi;
       
